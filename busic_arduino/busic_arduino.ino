@@ -1,5 +1,8 @@
+#include "notes.h"
+
 int pin1 = 1;
 int pin0 = 0;
+int tonePin = 11;
 volatile int state = LOW;
 
 long lastDebounceTime = 0;
@@ -13,11 +16,10 @@ char melody[512];
 int count = 0;
 int curr = 0;
 
-char mapping[7] = {'A', 'B', 'C', 'D', 'E', 'F', 'G'};
-
 void setup() {
     pinMode(pin1, INPUT);
     pinMode(pin0, INPUT);
+    pinMode(tonePin, OUTPUT);
     attachInterrupt(digitalPinToInterrupt(pin1), buttonPressed, RISING);
     attachInterrupt(digitalPinToInterrupt(pin0), buttonPressed, RISING);
 }
@@ -35,7 +37,8 @@ void loop() {
 void buttonPressed() {
   if ((millis() - lastDebounceTime) > debounceDelay) {
         long pressed = millis();
-        melody[count] = mapping[(pressed - lastButtonPress)%7];
+        melody[count] = noteMap[(pressed - lastButtonPress)%numNotes];
+        generateTone(freqMap[(pressed-lastButtonPress)%numNotes])
         lastButtonPress = pressed;
         count = count + 1;
         lastDebounceTime = millis();
