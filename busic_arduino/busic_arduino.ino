@@ -1,6 +1,7 @@
 int pin1 = 1;
 int pin0 = 0;
-volatile int state = LOW;
+int heart_led = 9;
+bool heart_on = false;
 
 long lastDebounceTime = 0;
 long debounceDelay = 300;
@@ -18,6 +19,8 @@ char mapping[7] = {'A', 'B', 'C', 'D', 'E', 'F', 'G'};
 void setup() {
     pinMode(pin1, INPUT);
     pinMode(pin0, INPUT);
+    pinMode(heart_led, OUTPUT);
+
     attachInterrupt(digitalPinToInterrupt(pin1), buttonPressed, RISING);
     attachInterrupt(digitalPinToInterrupt(pin0), buttonPressed, RISING);
 }
@@ -28,6 +31,13 @@ void loop() {
   }
   Serial.println(melody[curr]);
   curr = curr + 1;
+
+  if (heart_on) {
+    digitalWrite(heart_led, LOW);
+  } else {
+    digitalWrite(heart_led, HIGH);
+  }
+  heart_on = !heart_on;
 
   delay(300);
 }
