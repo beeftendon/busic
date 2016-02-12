@@ -4,6 +4,7 @@
 
 char noteMap[numNotes] = {'C', 'D', 'E', 'F', 'G', 'A', 'B', 'Q'};
 int freqMap[numNotes] = {262, 294, 330, 349, 392, 440, 494, 523};
+int beat = 100;
 
 void generateTone(int freq, int duration, int pin) {
   int period = 1000000/freq; // us
@@ -33,6 +34,7 @@ long lastButtonPress = 0;
 
 char melody[512];
 int melodyFreq[512];
+int holds[512];
 int count = 0;
 int curr = 0;
 
@@ -52,7 +54,8 @@ void loop() {
   
   int noteCount = 0;
   while (noteCount < count) {
-    generateTone(melodyFreq[noteCount], 250, tonePin);
+    
+    generateTone(melodyFreq[noteCount], holds[noteCount], tonePin);
     Serial.println(melodyFreq[noteCount]);
     noteCount++;
   }
@@ -67,6 +70,7 @@ void buttonPressed() {
         long pressed = millis();
         melody[count] = noteMap[(pressed - lastButtonPress)%numNotes];
         melodyFreq[count] = freqMap[(pressed - lastButtonPress)%numNotes];
+        holds[count] = beat*random(1,4);
         //generateTone(freqMap[(pressed-lastButtonPress)%numNotes], 1000, tonePin);
         lastButtonPress = pressed;
         count = count + 1;
