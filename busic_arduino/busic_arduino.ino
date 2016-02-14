@@ -1,4 +1,8 @@
-//#include "notes.h"
+#include <Tone.h>
+#include <Wire.h>
+#include <TimerOne.h>
+#include <Adafruit_MMA8451.h>
+#include <Adafruit_Sensor.h>
 
 #define numNotes 8
 
@@ -6,19 +10,7 @@ char noteMap[numNotes] = {'C', 'D', 'E', 'F', 'G', 'A', 'B', 'Q'};
 int freqMap[numNotes] = {262, 294, 330, 349, 392, 440, 494, 523};
 int beat = 100;
 
-void generateTone(int freq, int duration, int pin) {
-  int period = 1000000/freq; // us
-  int duty = period/2;
-  long startTime = millis();
-  long currTime = millis();
-  while (millis() - startTime < duration) {
-    digitalWrite(pin, 1);
-    delayMicroseconds(duty); // Approximately 10% duty cycle @ 1KHz
-    digitalWrite(pin, 0);
-    delayMicroseconds(period - duty);
-    currTime = millis();
-  }
-}
+Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
 int pin1 = 1;
 int pin0 = 0;
@@ -26,7 +18,7 @@ int tonePin = 6;
 volatile int state = LOW;
 
 long lastDebounceTime = 0;
-long debounceDelay = 300;
+long debounceDelay = 1000;
 int lastButton = LOW;
 int buttonState;
 
@@ -38,42 +30,43 @@ int holds[512];
 int count = 0;
 int curr = 0;
 
+double accX = 0;
+bool newNote = false;
+
 void setup() {
-    pinMode(pin1, INPUT);
-    pinMode(pin0, INPUT);
-    pinMode(tonePin, OUTPUT);
-    attachInterrupt(digitalPinToInterrupt(pin1), buttonPressed, RISING);
-    attachInterrupt(digitalPinToInterrupt(pin0), buttonPressed, RISING);
+  Serial.begin(115200);
+  // Set up the accelerometer
+  if (! mma.begin()) {
+    while(1) {
+      Serial.println("Couldnt start");
+    }
+  } 
+  Serial.println("MMA8451 found!");
+  mma.setRange(MMA8451_RANGE_2_G);
+
+  // Set up tones
+  pinMode(tonePin, OUTPUT);
 }
+
 
 void loop() {
   if (curr > count) {
     curr = 0;
   }
-  //Serial.println(melody[curr]);
-  
-  int noteCount = 0;
-  while (noteCount < count) {
-    
-    generateTone(melodyFreq[noteCount], holds[noteCount], tonePin);
-    Serial.println(melodyFreq[noteCount]);
-    noteCount++;
+  if (newNote) {
+    tone(tonePin, freqMap[0], 500);
+    newNote = false;
+  }
+
+  mma.read();
+  sensors_event_t event; 
+  mma.getEvent(&event);
+  accX = event.acceleration.x;
+  if (accX > 2.0 || accX < -2.0) {
+    newNote = true;
   }
   
-  curr = curr + 1;
+  Serial.println(accX);
 
-  delay(300);
-}
-
-void buttonPressed() {
-  if ((millis() - lastDebounceTime) > debounceDelay) {
-        long pressed = millis();
-        melody[count] = noteMap[(pressed - lastButtonPress)%numNotes];
-        melodyFreq[count] = freqMap[(pressed - lastButtonPress)%numNotes];
-        holds[count] = beat*random(1,4);
-        //generateTone(freqMap[(pressed-lastButtonPress)%numNotes], 1000, tonePin);
-        lastButtonPress = pressed;
-        count = count + 1;
-        lastDebounceTime = millis();
-  }
+  delayMicroseconds(100);
 }
